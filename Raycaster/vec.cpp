@@ -24,18 +24,11 @@ std::istream &operator>>(std::istream &i, vec3 &v)
 
 vec3 &vec3::operator+=(const vec3 &in)
 {
-<<<<<<< HEAD
     return vec3(v[0] + in.v[0], v[1] + in.v[1], v[2] + in.v[2]);
-=======
->>>>>>> parent of 84126d8 (added implementation of most methods)
 }
 
 vec3 &vec3::operator-=(const vec3 &in)
 {
-<<<<<<< HEAD
-    return vec3(v[0] - in.v[0], v[1] - in.v[1], v[2] - in.v[2]);
-=======
->>>>>>> parent of 84126d8 (added implementation of most methods)
 }
 
 vec3 &vec3::operator*=(const vec3 &in)
