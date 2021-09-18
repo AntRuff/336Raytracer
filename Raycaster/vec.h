@@ -64,7 +64,7 @@ public:
 
     //I/O
     friend std::ostream &operator<<(std::ostream &o, const vec3 &v);
-    friend std::istream &operator>>(std::istream &i, vec3 &v);  
+    friend std::istream &operator>>(std::istream &i, vec3 &v);
 };
 
 #endif
