@@ -3,7 +3,15 @@
 #include <list>
 #include <iterator>
 #include <math.h>
+#include <stdio.h>
+#include <stdint.h>
+
 using namespace std;
+
+#define R 0
+#define G 1
+#define B 2
+
 
 class sphere{
     
@@ -11,15 +19,13 @@ class sphere{
 
         vec3 origin;
         float radius;
-        int r, g, b;
+        vec3 color;
 
 
-        sphere(vec3 o, float r, int red, int green, int blue){
+        sphere(vec3 o, float r, vec3 rgb){
             origin = o;
             radius = r;
-            r = red;
-            g = green;
-            b = blue;
+            color = rgb;
         }
 };
 
@@ -27,26 +33,48 @@ int main(int argc, char *agrv[]) {
 
     vec3 eye = vec3(0, 0, 0);
     vec3 imagePlane = vec3(0, 0, 1);
-    double xBound = 512;
-    double yBound = 384;
+    const int xBound = 512;
+    const int yBound = 384;
+
+    int raster[yBound][xBound][3];
 
     list <sphere> sphereList;
 
-    sphereList.push_front(sphere(vec3(0, 0, 1), 1.0, 255, 255, 255));
+    sphereList.push_front(sphere(vec3(0, 0, 1), 1.0, vec3(255, 255, 255)));
 
     int x, y;
 
+    FILE *f;
 
-
-    for (y = -yBound/2; y < yBound/2; y++){
-        for (x = -xBound/2; x < xBound/2; x++){
-            
+    for (y = 0; y < yBound; y++){
+        for (x = 0; x < xBound; x++){
+            vec3 color = Raycast(eye, vec3((float) x, (float) y, imagePlane.z()), sphereList);
+            raster[y][x][R] = color.x();
+            raster[y][x][G] = color.y();
+            raster[y][x][B] = color.z();
         }
     }
 
+    f = fopen("output.ppm", "w");
+
+    fprintf(f, "P6\n%d\n%d\n255\n", xBound, yBound);
+    fwrite(raster, 1, sizeof(raster), f);
+
+    fclose(f);
+
+    return 0;
+
 }
 
-void Raycast(vec3 rayStart, vec3 rayEnd, list<sphere> sphereList){
+vec3 Raycast(vec3 rayStart, vec3 rayEnd, list<sphere> sphereList){
+
+    vec3 closestPoint = rayEnd;
+    float closestD = sqrt(pow(closestPoint.x() - rayStart.x(), 2) + 
+                          pow(closestPoint.y() - rayStart.y(), 2) +
+                          pow(closestPoint.z() - rayStart.z(), 2));
+    vec3 color = vec3(0, 0, 0);
+
+
     for(sphere s : sphereList){
         float a = pow((rayEnd.x() - rayStart.x()), 2) 
                 + pow((rayEnd.y() - rayStart.y()), 2) 
@@ -62,10 +90,47 @@ void Raycast(vec3 rayStart, vec3 rayEnd, list<sphere> sphereList){
         float intersect = (b * b) - (4 * a * c);
         if (intersect < 0.0){
         } else if (intersect == 0.0){
-            // Do something with -b/2a
+            float u = (-b/(2*a));
+            vec3 temp = vec3(rayStart.x() + u*(rayEnd.x() - rayStart.x()),
+                             rayStart.y() + u*(rayEnd.y() - rayStart.y()),
+                             rayStart.z() + u*(rayEnd.z() - rayStart.z()));
+            float tempD = sqrt(pow(temp.x() - rayStart.x(), 2) + 
+                               pow(temp.y() - rayStart.y(), 2) +
+                               pow(temp.z() - rayStart.z(), 2));
+            if (tempD < closestD) {  
+                closestPoint = temp;
+                closestD = tempD;
+                color = s.color;
+            }
         } else {
-            // Do something with full quadratic equation
+            float uP = (-b * intersect)/(2*a);
+            float uN = (-b * -intersect)/(2*a);
+            vec3 tempP = vec3(rayStart.x() + uP*(rayEnd.x() - rayStart.x()),
+                             rayStart.y() + uP*(rayEnd.y() - rayStart.y()),
+                             rayStart.z() + uP*(rayEnd.z() - rayStart.z()));
+            vec3 tempN = vec3(rayStart.x() + uN*(rayEnd.x() - rayStart.x()),
+                             rayStart.y() + uN*(rayEnd.y() - rayStart.y()),
+                             rayStart.z() + uN*(rayEnd.z() - rayStart.z()));
+            float tempPD = sqrt(pow(tempP.x() - rayStart.x(), 2) + 
+                                pow(tempP.y() - rayStart.y(), 2) +
+                                pow(tempP.z() - rayStart.z(), 2));
+            float tempND = sqrt(pow(tempN.x() - rayStart.x(), 2) + 
+                                pow(tempN.y() - rayStart.y(), 2) +
+                                pow(tempN.z() - rayStart.z(), 2));
+            if (tempPD < closestD){
+                closestPoint = tempP;
+                closestD = tempPD;
+                color = s.color;
+            }
+            if (tempND < closestD){
+                closestPoint = tempN;
+                closestD = tempND;
+                color = s.color;
+            }
+            
         }
 
     }
+
+    return color;
 }
