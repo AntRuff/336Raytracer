@@ -1,5 +1,6 @@
 # 336Raytracer
 Anthony Ruffalo aruffalo
+
 Brady Solomon bsolomon
 
 To run the project, run the Makefile with the make command. This works on pyrite and should produce an image in output.ppm.
