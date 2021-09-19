@@ -29,43 +29,6 @@ class sphere{
         }
 };
 
-int main(int argc, char *agrv[]) {
-
-    vec3 eye = vec3(0, 0, 0);
-    vec3 imagePlane = vec3(0, 0, 1);
-    const int xBound = 512;
-    const int yBound = 384;
-
-    int raster[yBound][xBound][3];
-
-    list <sphere> sphereList;
-
-    sphereList.push_front(sphere(vec3(0, 0, 1), 1.0, vec3(255, 255, 255)));
-
-    int x, y;
-
-    FILE *f;
-
-    for (y = 0; y < yBound; y++){
-        for (x = 0; x < xBound; x++){
-            vec3 color = Raycast(eye, vec3((float) x, (float) y, imagePlane.z()), sphereList);
-            raster[y][x][R] = color.x();
-            raster[y][x][G] = color.y();
-            raster[y][x][B] = color.z();
-        }
-    }
-
-    f = fopen("output.ppm", "w");
-
-    fprintf(f, "P6\n%d\n%d\n255\n", xBound, yBound);
-    fwrite(raster, 1, sizeof(raster), f);
-
-    fclose(f);
-
-    return 0;
-
-}
-
 vec3 Raycast(vec3 rayStart, vec3 rayEnd, list<sphere> sphereList){
 
     vec3 closestPoint = rayEnd;
@@ -133,4 +96,41 @@ vec3 Raycast(vec3 rayStart, vec3 rayEnd, list<sphere> sphereList){
     }
 
     return color;
+}
+
+int main(int argc, char *agrv[]) {
+
+    vec3 eye = vec3(0, 0, 0);
+    vec3 imagePlane = vec3(0, 0, 1);
+    const int xBound = 512;
+    const int yBound = 384;
+
+    int raster[yBound][xBound][3];
+
+    list <sphere> sphereList;
+
+    sphereList.push_front(sphere(vec3(0, 0, 1), 1.0, vec3(255, 255, 255)));
+
+    int x, y;
+
+    FILE *f;
+
+    for (y = 0; y < yBound; y++){
+        for (x = 0; x < xBound; x++){
+            vec3 color = Raycast(eye, vec3((float) x, (float) y, imagePlane.z()), sphereList);
+            raster[y][x][R] = color.x();
+            raster[y][x][G] = color.y();
+            raster[y][x][B] = color.z();
+        }
+    }
+
+    f = fopen("output.ppm", "w");
+
+    fprintf(f, "P6\n%d\n%d\n255\n", xBound, yBound);
+    fwrite(raster, 1, sizeof(raster), f);
+
+    fclose(f);
+
+    return 0;
+
 }
