@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <cstdint>
+#include <climits>
 
 using namespace std;
 
@@ -18,7 +19,7 @@ class shape {
 public:
     vec3 color;
 
-    virtual float hit(vec3 rayStart, vec3 rayEnd) { return 0;}
+    virtual float hit(vec3 rayStart, vec3 rayEnd) = 0;
 };
 
 class sphere : public shape{
@@ -79,6 +80,7 @@ public:
             }
             return tempND;
         }
+        return -1;
     }
 };
 
@@ -96,15 +98,29 @@ public:
     }
 
     float hit(vec3 rayStart, vec3 rayEnd) override {
-        vec3 temp = t1-t0;
-        vec3 normal = temp.cross((t2-t0));
+        vec3 edge0 = t1-t0;
+        vec3 edge1 = t2-t1;
+        vec3 edge2 = t0-t2;
+        vec3 normal = edge0.cross((t2-t0));
         vec3 dir = rayEnd-rayStart;
+
+        if (normal.dot(dir) == 0) return -1;
+
         float dis = normal.dot(t0);
-        return - ((normal.dot(rayStart) + dis)/ normal.dot(dir));
+        float t = -((normal.dot(rayStart) + dis)/ normal.dot(dir));
+        vec3 p = rayStart + t * dir;
+        vec3 c0 = p - t0;
+        vec3 c1 = p - t1;
+        vec3 c2 = p - t2;
+
+        if (normal.dot(edge0.cross(c0)) > 0 && normal.dot(edge1.cross(c1)) > 0 && normal.dot(edge2.cross(c2)) > 0) {
+            return t;
+        }
+        else return -1;
     }
 };
 
-vec3 Raycast(vec3 rayStart, vec3 rayEnd, list<shape> shapeList){
+vec3 Raycast(vec3 rayStart, vec3 rayEnd, list<shape*> shapeList){
 
     vec3 closestPoint = rayEnd;
     float closestD = sqrt(pow(closestPoint.x() - rayStart.x(), 2) +
@@ -112,13 +128,18 @@ vec3 Raycast(vec3 rayStart, vec3 rayEnd, list<shape> shapeList){
                           pow(closestPoint.z() - rayStart.z(), 2));
     vec3 color = vec3(50, 50, 50);
 
-    for(shape s : shapeList){
-        float d = s.hit(rayStart, rayEnd);
-        if (d < closestD){
+    for(shape* s : shapeList){
+        float d = s->hit(rayStart, rayEnd);
+
+        if (d == -1) {
+
+        }
+        else if (d < closestD){
             closestD = d;
-            color = s.color;
+            color = s->color;
         }
     }
+    return color;
 }
 
 int main(int argc, char *agrv[]) {
@@ -131,11 +152,19 @@ int main(int argc, char *agrv[]) {
 
     uint8_t raster[yBound][xBound][3];
 
-    list <shape> shapeList;
+    list <shape*> shapeList;
 
-    shapeList.push_front(sphere(vec3(xBound/2, yBound/2, 1), 0.5, vec3(0, 0, 255)));
-    shapeList.push_front(sphere(vec3(xBound/2+0.3, yBound/2-0.3, 01.1), 0.4, vec3(0, 255, 0)));
-    shapeList.push_front(triangle(vec3(0, 1, 1), vec3(1, 0, 1), vec3(1, 1, 0), vec3(255, 0, 0)));
+//    shape* s1 = new sphere(vec3(xBound/2, yBound/2, 1), 0.5, vec3(0, 0, 255));
+//    shape* s2 = new sphere(vec3(xBound/2+0.3, yBound/2-0.3, 01.1), 0.4, vec3(0, 255, 0));
+    shape* t1 = new triangle(vec3(xBound/2, yBound/2, 99), vec3(xBound/2-10, yBound/2, 99), vec3(xBound/2, yBound/2-10, 99), vec3(255, 255, 0));
+
+//    shapeList.push_front(s1);
+//    shapeList.push_front(s2);
+    shapeList.push_front(t1);
+
+//    shapeList.push_front(sphere(vec3(xBound/2, yBound/2, 1), 0.5, vec3(0, 0, 255)));
+//    shapeList.push_front(sphere(vec3(xBound/2+0.3, yBound/2-0.3, 01.1), 0.4, vec3(0, 255, 0)));
+//    shapeList.push_front(triangle(vec3(0, 1, 100), vec3(1, 0, 100), vec3(1, 1, 100), vec3(255, 255, 0)));
 
 
     int x, y;
