@@ -14,13 +14,19 @@ using namespace std;
 #define B 2
 
 
-class sphere{
+class shape {
+public:
+    vec3 color;
+
+    virtual float hit(vec3 rayStart, vec3 rayEnd) { return 0;}
+};
+
+class sphere : public shape{
 
 public:
 
     vec3 origin;
     float radius;
-    vec3 color;
 
 
     sphere(vec3 o, float r, vec3 rgb){
@@ -28,28 +34,18 @@ public:
         radius = r;
         color = rgb;
     }
-};
 
-vec3 Raycast(vec3 rayStart, vec3 rayEnd, list<sphere> sphereList){
-
-    vec3 closestPoint = rayEnd;
-    float closestD = sqrt(pow(closestPoint.x() - rayStart.x(), 2) +
-                          pow(closestPoint.y() - rayStart.y(), 2) +
-                          pow(closestPoint.z() - rayStart.z(), 2));
-    vec3 color = vec3(50, 50, 50);
-
-
-    for(sphere s : sphereList){
+    float hit(vec3 rayStart, vec3 rayEnd) override {
         float a = pow((rayEnd.x() - rayStart.x()), 2)
                   + pow((rayEnd.y() - rayStart.y()), 2)
                   + pow((rayEnd.z() - rayStart.z()), 2);
-        float b = 2 * (((rayEnd.x() - rayStart.x())*(rayStart.x()-s.origin.x()))
-                       +((rayEnd.y() - rayStart.y())*(rayStart.y()-s.origin.y()))
-                       +((rayEnd.z() - rayStart.z())*(rayStart.z()-s.origin.z())));
-        float c = pow(s.origin.x(), 2) + pow(s.origin.y(), 2) + pow(s.origin.z(), 2)
+        float b = 2 * (((rayEnd.x() - rayStart.x())*(rayStart.x()-origin.x()))
+                       +((rayEnd.y() - rayStart.y())*(rayStart.y()-origin.y()))
+                       +((rayEnd.z() - rayStart.z())*(rayStart.z()-origin.z())));
+        float c = pow(origin.x(), 2) + pow(origin.y(), 2) + pow(origin.z(), 2)
                   + pow(rayStart.x(), 2) + pow(rayStart.y(), 2) + pow(rayStart.z(), 2)
-                  - 2 * ((s.origin.x()*rayStart.x()) + (s.origin.y()*rayStart.y()) + (s.origin.z()*rayStart.z()))
-                  - pow(s.radius, 2);
+                  - 2 * ((origin.x()*rayStart.x()) + (origin.y()*rayStart.y()) + (origin.z()*rayStart.z()))
+                  - pow(radius, 2);
 
         float intersect = (b * b) - (4 * a * c);
 
@@ -62,11 +58,7 @@ vec3 Raycast(vec3 rayStart, vec3 rayEnd, list<sphere> sphereList){
             float tempD = sqrt(pow(temp.x() - rayStart.x(), 2) +
                                pow(temp.y() - rayStart.y(), 2) +
                                pow(temp.z() - rayStart.z(), 2));
-            if (tempD < closestD) {
-                closestPoint = temp;
-                closestD = tempD;
-                color = s.color;
-            }
+            return tempD;
         } else {
             float uP = (-b + sqrt(intersect))/(2*a);
             float uN = (-b - sqrt(intersect))/(2*a);
@@ -82,23 +74,51 @@ vec3 Raycast(vec3 rayStart, vec3 rayEnd, list<sphere> sphereList){
             float tempND = sqrt(pow(tempN.x() - rayStart.x(), 2) +
                                 pow(tempN.y() - rayStart.y(), 2) +
                                 pow(tempN.z() - rayStart.z(), 2));
-
-            if (tempPD < closestD){
-                closestPoint = tempP;
-                closestD = tempPD;
-                color = s.color;
+            if (tempPD > tempND) {
+                return tempPD;
             }
-            if (tempND < closestD){
-                closestPoint = tempN;
-                closestD = tempND;
-                color = s.color;
-            }
-
+            return tempND;
         }
+    }
+};
 
+class triangle : public shape {
+public:
+    vec3 t0;
+    vec3 t1;
+    vec3 t2;
+
+    triangle (vec3 a, vec3 b, vec3 c, vec3 rgb){
+        t0 = a;
+        t1 = b;
+        t2 = c;
+        color = rgb;
     }
 
-    return color;
+    float hit(vec3 rayStart, vec3 rayEnd) override {
+        vec3 temp = t1-t0;
+        vec3 normal = temp.cross((t2-t0));
+        vec3 dir = rayEnd-rayStart;
+        float dis = normal.dot(t0);
+        return - ((normal.dot(rayStart) + dis)/ normal.dot(dir));
+    }
+};
+
+vec3 Raycast(vec3 rayStart, vec3 rayEnd, list<shape> shapeList){
+
+    vec3 closestPoint = rayEnd;
+    float closestD = sqrt(pow(closestPoint.x() - rayStart.x(), 2) +
+                          pow(closestPoint.y() - rayStart.y(), 2) +
+                          pow(closestPoint.z() - rayStart.z(), 2));
+    vec3 color = vec3(50, 50, 50);
+
+    for(shape s : shapeList){
+        float d = s.hit(rayStart, rayEnd);
+        if (d < closestD){
+            closestD = d;
+            color = s.color;
+        }
+    }
 }
 
 int main(int argc, char *agrv[]) {
@@ -111,11 +131,11 @@ int main(int argc, char *agrv[]) {
 
     uint8_t raster[yBound][xBound][3];
 
-    list <sphere> sphereList;
+    list <shape> shapeList;
 
-    sphereList.push_front(sphere(vec3(xBound/2, yBound/2, 1), 0.5, vec3(0, 0, 255)));
-    sphereList.push_front(sphere(vec3(xBound/2+0.3, yBound/2-0.3, 01.1), 0.4, vec3(0, 255, 0)));
-    sphereList.push_front(sphere(vec3(xBound/2-0.3, yBound/2-0.3, 0.9), 0.4, vec3(255, 0, 0)));
+    shapeList.push_front(sphere(vec3(xBound/2, yBound/2, 1), 0.5, vec3(0, 0, 255)));
+    shapeList.push_front(sphere(vec3(xBound/2+0.3, yBound/2-0.3, 01.1), 0.4, vec3(0, 255, 0)));
+    shapeList.push_front(triangle(vec3(0, 1, 1), vec3(1, 0, 1), vec3(1, 1, 0), vec3(255, 0, 0)));
 
 
     int x, y;
@@ -124,7 +144,7 @@ int main(int argc, char *agrv[]) {
 
     for (y = 0; y < yBound; y++){
         for (x = 0; x < xBound; x++){
-            vec3 color = Raycast(eye, vec3((float) x, (float) y, imagePlane.z()), sphereList);
+            vec3 color = Raycast(eye, vec3((float) x, (float) y, imagePlane.z()), shapeList);
             raster[y][x][R] = (uint8_t) color.x();
             raster[y][x][G] = (uint8_t) color.y();
             raster[y][x][B] = (uint8_t) color.z();
