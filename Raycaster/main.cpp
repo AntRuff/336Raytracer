@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <cstdint>
-#include <climits>
+#include <cfloat>
 
 using namespace std;
 
@@ -122,7 +122,7 @@ public:
 
 vec3 Raycast(vec3 rayStart, vec3 rayEnd, list<shape*> shapeList){
 
-    vec3 closestPoint = rayEnd;
+    vec3 closestPoint = vec3(FLT_MAX, FLT_MAX, FLT_MAX);
     float closestD = sqrt(pow(closestPoint.x() - rayStart.x(), 2) +
                           pow(closestPoint.y() - rayStart.y(), 2) +
                           pow(closestPoint.z() - rayStart.z(), 2));
@@ -146,6 +146,8 @@ int main(int argc, char *agrv[]) {
 
     const int xBound = 512;
     const int yBound = 384;
+    int samples = 16;
+
     vec3 eye = vec3(xBound/2, yBound/2, 0);
     vec3 imagePlane = vec3(0, 0, 100);
 
@@ -156,7 +158,7 @@ int main(int argc, char *agrv[]) {
 
 //    shape* s1 = new sphere(vec3(xBound/2, yBound/2, 1), 0.5, vec3(0, 0, 255));
 //    shape* s2 = new sphere(vec3(xBound/2+0.3, yBound/2-0.3, 01.1), 0.4, vec3(0, 255, 0));
-    shape* t1 = new triangle(vec3(xBound/2, yBound/2, 99), vec3(xBound/2-10, yBound/2, 99), vec3(xBound/2, yBound/2-10, 99), vec3(255, 255, 0));
+    shape* t1 = new triangle(vec3(xBound/2, yBound/2, 99), vec3(xBound/2-100, yBound/2, 99), vec3(xBound/2, yBound/2-100, 99), vec3(255, 255, 0));
 
 //    shapeList.push_front(s1);
 //    shapeList.push_front(s2);
@@ -167,13 +169,19 @@ int main(int argc, char *agrv[]) {
 //    shapeList.push_front(triangle(vec3(0, 1, 100), vec3(1, 0, 100), vec3(1, 1, 100), vec3(255, 255, 0)));
 
 
-    int x, y;
+    int x, y, s;
 
     FILE *f;
 
     for (y = 0; y < yBound; y++){
         for (x = 0; x < xBound; x++){
-            vec3 color = Raycast(eye, vec3((float) x, (float) y, imagePlane.z()), shapeList);
+            vec3 color = vec3(0, 0, 0);
+            for (s = 0; s < samples; s++) {
+                float randX = rand() / (RAND_MAX + 1.0);
+                float randY = rand() / (RAND_MAX + 1.0);
+                color += Raycast(eye, vec3((float) x + randX, (float) y + randY, imagePlane.z()), shapeList);
+            }
+            color /= samples;
             raster[y][x][R] = (uint8_t) color.x();
             raster[y][x][G] = (uint8_t) color.y();
             raster[y][x][B] = (uint8_t) color.z();
