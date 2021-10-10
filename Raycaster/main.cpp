@@ -75,7 +75,7 @@ public:
             float tempND = sqrt(pow(tempN.x() - rayStart.x(), 2) +
                                 pow(tempN.y() - rayStart.y(), 2) +
                                 pow(tempN.z() - rayStart.z(), 2));
-            if (tempPD > tempND) {
+            if (tempPD < tempND) {
                 return tempPD;
             }
             return tempND;
@@ -107,14 +107,17 @@ public:
         if (normal.dot(dir) == 0) return -1;
 
         float dis = normal.dot(t0);
-        float t = -((normal.dot(rayStart) + dis)/ normal.dot(dir));
+        float t = ((normal.dot(rayStart) + dis)/ normal.dot(dir));
+        if (t < 0) return -1;
         vec3 p = rayStart + t * dir;
         vec3 c0 = p - t0;
         vec3 c1 = p - t1;
         vec3 c2 = p - t2;
 
-        if (normal.dot(edge0.cross(c0)) > 0 && normal.dot(edge1.cross(c1)) > 0 && normal.dot(edge2.cross(c2)) > 0) {
-            return t;
+        float distance = sqrt(pow(p.x()-rayStart.x(), 2) + pow(p.y()-rayStart.y(), 2) + pow(p.z()-rayStart.z(), 2));
+
+        if (normal.dot(edge0.cross(c0)) >= 0 && normal.dot(edge1.cross(c1)) >= 0 && normal.dot(edge2.cross(c2)) >= 0) {
+            return distance;
         }
         else return -1;
     }
@@ -156,18 +159,16 @@ int main(int argc, char *agrv[]) {
 
     list <shape*> shapeList;
 
-//    shape* s1 = new sphere(vec3(xBound/2, yBound/2, 1), 0.5, vec3(0, 0, 255));
-//    shape* s2 = new sphere(vec3(xBound/2+0.3, yBound/2-0.3, 01.1), 0.4, vec3(0, 255, 0));
-    shape* t1 = new triangle(vec3(xBound/2, yBound/2, 99), vec3(xBound/2-100, yBound/2, 99), vec3(xBound/2, yBound/2-100, 99), vec3(255, 255, 0));
+    shape* s1 = new sphere(vec3(xBound/2, yBound-100, 200), 100, vec3(0, 0, 255));
+    shape* s2 = new sphere(vec3(xBound/2+100, yBound-150, 300), 150, vec3(0, 255, 0));
+    shape* t1 = new triangle(vec3(xBound/2, yBound, 0), vec3(xBound/2-10000, yBound, 1000), vec3(xBound/2+10000, yBound, 1000), vec3(255, 255, 0));
 
-//    shapeList.push_front(s1);
-//    shapeList.push_front(s2);
+    s1;
+    s2;
+    t1;
+    shapeList.push_front(s1);
+    shapeList.push_front(s2);
     shapeList.push_front(t1);
-
-//    shapeList.push_front(sphere(vec3(xBound/2, yBound/2, 1), 0.5, vec3(0, 0, 255)));
-//    shapeList.push_front(sphere(vec3(xBound/2+0.3, yBound/2-0.3, 01.1), 0.4, vec3(0, 255, 0)));
-//    shapeList.push_front(triangle(vec3(0, 1, 100), vec3(1, 0, 100), vec3(1, 1, 100), vec3(255, 255, 0)));
-
 
     int x, y, s;
 
