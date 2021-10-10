@@ -96,6 +96,12 @@ vec3 vec3::operator/(float f)
     return vec3(v[0] / f, v[1] / f, v[2] / f);
 }
 
+float vec3::length() {
+    return sqrt(pow(x(), 2) + pow(y(), 2) + pow(z(), 2));
+}
+float vec3::length(vec3 origin) {
+    return sqrt(pow(x() - origin.x(), 2) + pow(y() - origin.y(), 2) + pow(z() - origin.z(), 2));
+}
 //vec3 &vec3::to_unit()
 //{
 //
