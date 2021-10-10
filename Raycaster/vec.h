@@ -62,6 +62,9 @@ public:
 
     vec3 unit() const;
 
+    float length();
+    float length(vec3 origin);
+
     //I/O
     friend std::ostream &operator<<(std::ostream &o, const vec3 &v);
     friend std::istream &operator>>(std::istream &i, vec3 &v);
