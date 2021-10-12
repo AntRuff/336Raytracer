@@ -110,7 +110,7 @@ public:
             double tempD = sqrt(pow(temp.x() - rayStart.x(), 2) +
                                pow(temp.y() - rayStart.y(), 2) +
                                pow(temp.z() - rayStart.z(), 2));
-            return hit(tempD, temp, temp - origin, color, matKey);
+            return hit(tempD, temp, (temp - origin) / (temp - origin).length(), color, matKey);
         } else {
             double uP = (-b + sqrt(intersect))/(2*a);
             double uN = (-b - sqrt(intersect))/(2*a);
@@ -127,9 +127,9 @@ public:
                                 pow(tempN.y() - rayStart.y(), 2) +
                                 pow(tempN.z() - rayStart.z(), 2));
             if (tempPD < tempND) {
-                return hit(tempPD, tempP, tempP - origin, color, matKey);
+                return hit(tempPD, tempP, (tempP - origin) / (tempP - origin).length(), color, matKey);
             }
-            return hit(tempND, tempN, tempN - origin, color, matKey);
+            return hit(tempND, tempN, (tempN - origin) / (tempN - origin).length(), color, matKey);
         }
         return hit(-1, vec3(-1, -1, -1), vec3(-1, -1, -1), color, matKey);
     }
@@ -194,6 +194,14 @@ hit Raycast(vec3 rayStart, vec3 rayEnd, list<shape*> shapeList){
         if (d == -1) {
 
         }
+        else if ((rayStart.x() - rayEnd.x() >= 0 && rayStart.x() - tempH.loc.x() < 0) ||
+                 (rayStart.x() - rayEnd.x() < 0 && rayStart.x() - tempH.loc.x() >= 0) ||
+                 (rayStart.y() - rayEnd.y() >= 0 && rayStart.y() - tempH.loc.y() < 0) ||
+                 (rayStart.y() - rayEnd.y() < 0 && rayStart.y() - tempH.loc.y() >= 0) ||
+                 (rayStart.z() - rayEnd.z() >= 0 && rayStart.z() - tempH.loc.z() < 0) ||
+                 (rayStart.z() - rayEnd.z() < 0 && rayStart.z() - tempH.loc.z() >= 0)) {
+
+        }
         else if (d < closestD){
             closestD = d;
             h = tempH ;
@@ -209,6 +217,7 @@ vec3 get_color(vec3 p, vec3 dir, int depth, list<shape*> shapeList) {
     if (depth <= 0) return vec3(0, 0, 0);
     hit next = Raycast(p, dir, shapeList);
     if (next.dist > 0) {
+        if (next.color.r() == 0 && next.color.g() == 0 && next.color.b() == 0) return next.color;
         vec3 ref;
         double key = next.matKey;
         if (key == 1.0) {
@@ -217,12 +226,13 @@ vec3 get_color(vec3 p, vec3 dir, int depth, list<shape*> shapeList) {
             printf("");
         }
         else if (key == 2.0) {
-            ref = dir - 2 * dir.dot(next.norm) * next.norm;
+            ref = (dir - p) - 2 * dir.dot(next.norm) * next.norm;
         }
 //        vec3 ref = next.mptr->reflection(next.loc, next.norm);
-        return f * next.color + (1 - f) * get_color(next.loc, ref, depth - 1, shapeList);
+        return next.color * get_color(next.loc, ref, depth - 1, shapeList);
+//        return f * next.color + (1 - f) * get_color(next.loc, ref, depth - 1, shapeList);
     }
-    return vec3(0.53, 0.81, 0.92);
+    return vec3(0.5, 1, 1); //sky
 }
 
 //vec3 getFirstColor(vec3 rayStart, vec3 rayEnd, list<shape*> shapeList) {
@@ -233,22 +243,21 @@ int main(int argc, char *agrv[]) {
 
     const int xBound = 512;
     const int yBound = 384;
-    int samples = 64;
-    int depth = 64;
+    int samples = 16;
+    int depth = 16;
 
-    vec3 eye = vec3(xBound/2, yBound/2, 0);
-    vec3 imagePlane = vec3(0, 0, 100);
+    vec3 eye = vec3(1, 0.75, 0);
+    vec3 imagePlane = vec3(2, 1.5, 1);
 
 
     uint8_t raster[yBound][xBound][3];
 
     list <shape*> shapeList;
 
-    shape* s1 = new sphere(vec3(xBound/2.0, yBound-55, 125), 25, vec3(0.5, 0.5, 1), 1);
-    shape* s2 = new sphere(vec3(xBound/2.0, yBound-130, 250), 100, vec3(1, 0.5, 0.5), 1);
-    shape* s3 = new sphere(vec3(xBound/2.0 + 200, yBound-130, 250), 100, vec3(1, 1, 1), 2);
-    shape* t1 = new triangle(vec3(xBound/2, yBound - 30, 0), vec3(xBound/2-10000, yBound - 30, 1000), vec3(xBound/2+10000, yBound - 30, 1000), vec3(0.5, 1, 0.5), 1);
-    shape* t2 = new triangle(vec3(xBound/2, 30, 300), vec3(xBound/2-200, yBound-50, 300), vec3(xBound/2+200, yBound-50, 300), vec3(0.5, 1, 0.5), 1);
+    shape* s1 = new sphere(vec3(0.25, 1, 2), 0.5, vec3(0., 0., 1), 1);
+    shape* s2 = new sphere(vec3(1.75, 1, 2), 0.5, vec3(1, 0., 0.), 1);
+    shape* s3 = new sphere(vec3(1, 0.5, 4), 1, vec3(1, 1, 1), 2);
+    shape* t1 = new triangle(vec3(1, 1.5, 0), vec3(1-10, 1.5, 10), vec3(11, 1.5, 10), vec3(0.5, 1, 0.5), 1);
 
 //    s1;
 //    s2;
@@ -257,7 +266,6 @@ int main(int argc, char *agrv[]) {
     shapeList.push_front(s2);
     shapeList.push_front(s3);
     shapeList.push_front(t1);
-    shapeList.push_front(t2);
 
     int x, y, s;
 
@@ -274,9 +282,10 @@ int main(int argc, char *agrv[]) {
                 double randY = rand() / (RAND_MAX + 1.0);
 //                hit h = Raycast(eye, vec3((double) x + randX, (double) y + randY, imagePlane.z()), shapeList);
 //                material *m = h.mptr;
-                vec3 tempcolor = get_color(eye, vec3((double) x + randX, (double) y + randY, imagePlane.z()), depth, shapeList) * 255;
+                vec3 tempdir = vec3((imagePlane.x() / xBound) * ((double) x + randX), (imagePlane.y() / yBound) * ((double) y + randY), imagePlane.z());
+                vec3 tempcolor = get_color(eye, tempdir, depth, shapeList) * 255;
                 color += tempcolor;
-//                color += h.s->mat->reflection(h.loc, h.norm, depth, shapeList);
+//                color = h.s->mat->reflection(h.loc, h.norm, depth, shapeList);
             }
             color /= samples;
             raster[y][x][R] = (uint8_t) color.x();
