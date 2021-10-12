@@ -73,7 +73,8 @@ vec3 vec3::operator-(const vec3 &in) const
 
 vec3 vec3::operator*(const vec3 &in) const
 {
-    return cross(in);
+//    return cross(in);
+    return vec3(v[0] * in.v[0], v[1] * in.v[1], v[2] * in.v[2]);
 }
 
 vec3 vec3::operator/(const vec3 &in) const
