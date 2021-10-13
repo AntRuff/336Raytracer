@@ -88,51 +88,76 @@ public:
     }
 
     hit getHit(vec3 rayStart, vec3 rayEnd) override {
-        double a = pow((rayEnd.x() - rayStart.x()), 2)
-                   + pow((rayEnd.y() - rayStart.y()), 2)
-                   + pow((rayEnd.z() - rayStart.z()), 2);
-        double b = 2 * (((rayEnd.x() - rayStart.x())*(rayStart.x()-origin.x()))
-                        +((rayEnd.y() - rayStart.y())*(rayStart.y()-origin.y()))
-                        +((rayEnd.z() - rayStart.z())*(rayStart.z()-origin.z())));
-        double c = pow(origin.x(), 2) + pow(origin.y(), 2) + pow(origin.z(), 2)
-                   + pow(rayStart.x(), 2) + pow(rayStart.y(), 2) + pow(rayStart.z(), 2)
-                   - 2 * ((origin.x()*rayStart.x()) + (origin.y()*rayStart.y()) + (origin.z()*rayStart.z()))
-                   - pow(radius, 2);
+        vec3 dir = rayEnd - rayStart;
+        vec3 startToCenter = rayStart - origin;
+        double a = dir.dot(dir);
+        double b = 2 * dir.dot(startToCenter);
+        double c = startToCenter.dot(startToCenter) - (radius * radius);
 
-        double intersect = (b * b) - (4 * a * c);
+        double disc = (b * b) - (4 * a * c);
 
-        if (intersect < 0.0){
-        } else if (intersect == 0.0){
-            double u = (-b/(2*a));
-            vec3 temp = vec3(rayStart.x() + u*(rayEnd.x() - rayStart.x()),
-                             rayStart.y() + u*(rayEnd.y() - rayStart.y()),
-                             rayStart.z() + u*(rayEnd.z() - rayStart.z()));
-            double tempD = sqrt(pow(temp.x() - rayStart.x(), 2) +
-                                pow(temp.y() - rayStart.y(), 2) +
-                                pow(temp.z() - rayStart.z(), 2));
-            return hit(tempD, temp, (temp - origin) / (temp - origin).length(), color, matKey);
+        if (disc < 0.0){
         } else {
-            double uP = (-b + sqrt(intersect))/(2*a);
-            double uN = (-b - sqrt(intersect))/(2*a);
-            vec3 tempP = vec3(rayStart.x() + uP*(rayEnd.x() - rayStart.x()),
-                              rayStart.y() + uP*(rayEnd.y() - rayStart.y()),
-                              rayStart.z() + uP*(rayEnd.z() - rayStart.z()));
-            vec3 tempN = vec3(rayStart.x() + uN*(rayEnd.x() - rayStart.x()),
-                              rayStart.y() + uN*(rayEnd.y() - rayStart.y()),
-                              rayStart.z() + uN*(rayEnd.z() - rayStart.z()));
-            double tempPD = sqrt(pow(tempP.x() - rayStart.x(), 2) +
-                                 pow(tempP.y() - rayStart.y(), 2) +
-                                 pow(tempP.z() - rayStart.z(), 2));
-            double tempND = sqrt(pow(tempN.x() - rayStart.x(), 2) +
-                                 pow(tempN.y() - rayStart.y(), 2) +
-                                 pow(tempN.z() - rayStart.z(), 2));
-            if (tempPD < tempND) {
-                return hit(tempPD, tempP, (tempP - origin) / (tempP - origin).length(), color, matKey);
-            }
-            return hit(tempND, tempN, (tempN - origin) / (tempN - origin).length(), color, matKey);
+
+            double t = (-b - sqrt(disc)) / (2. * a);
+            vec3 r = rayStart + (t * dir);
+            vec3 n = r - origin;
+            n = n / n.length();
+
+            return hit(t, r, n, color, matKey);
         }
         return hit(-1, vec3(-1, -1, -1), vec3(-1, -1, -1), color, matKey);
     }
+
+
+
+
+//    hit getHit(vec3 rayStart, vec3 rayEnd) override {
+//        double a = pow((rayEnd.x() - rayStart.x()), 2)
+//                   + pow((rayEnd.y() - rayStart.y()), 2)
+//                   + pow((rayEnd.z() - rayStart.z()), 2);
+//        double b = 2 * (((rayEnd.x() - rayStart.x())*(rayStart.x()-origin.x()))
+//                        +((rayEnd.y() - rayStart.y())*(rayStart.y()-origin.y()))
+//                        +((rayEnd.z() - rayStart.z())*(rayStart.z()-origin.z())));
+//        double c = pow(origin.x(), 2) + pow(origin.y(), 2) + pow(origin.z(), 2)
+//                   + pow(rayStart.x(), 2) + pow(rayStart.y(), 2) + pow(rayStart.z(), 2)
+//                   - 2 * ((origin.x()*rayStart.x()) + (origin.y()*rayStart.y()) + (origin.z()*rayStart.z()))
+//                   - pow(radius, 2);
+//
+//        double intersect = (b * b) - (4 * a * c);
+//
+//        if (intersect < 0.0){
+//        } else if (intersect == 0.0){
+//            double u = (-b/(2*a));
+//            vec3 temp = vec3(rayStart.x() + u*(rayEnd.x() - rayStart.x()),
+//                             rayStart.y() + u*(rayEnd.y() - rayStart.y()),
+//                             rayStart.z() + u*(rayEnd.z() - rayStart.z()));
+//            double tempD = sqrt(pow(temp.x() - rayStart.x(), 2) +
+//                                pow(temp.y() - rayStart.y(), 2) +
+//                                pow(temp.z() - rayStart.z(), 2));
+//            return hit(tempD, temp, (temp - origin) / (temp - origin).length(), color, matKey);
+//        } else {
+//            double uP = (-b + sqrt(intersect))/(2*a);
+//            double uN = (-b - sqrt(intersect))/(2*a);
+//            vec3 tempP = vec3(rayStart.x() + uP*(rayEnd.x() - rayStart.x()),
+//                              rayStart.y() + uP*(rayEnd.y() - rayStart.y()),
+//                              rayStart.z() + uP*(rayEnd.z() - rayStart.z()));
+//            vec3 tempN = vec3(rayStart.x() + uN*(rayEnd.x() - rayStart.x()),
+//                              rayStart.y() + uN*(rayEnd.y() - rayStart.y()),
+//                              rayStart.z() + uN*(rayEnd.z() - rayStart.z()));
+//            double tempPD = sqrt(pow(tempP.x() - rayStart.x(), 2) +
+//                                 pow(tempP.y() - rayStart.y(), 2) +
+//                                 pow(tempP.z() - rayStart.z(), 2));
+//            double tempND = sqrt(pow(tempN.x() - rayStart.x(), 2) +
+//                                 pow(tempN.y() - rayStart.y(), 2) +
+//                                 pow(tempN.z() - rayStart.z(), 2));
+//            if (tempPD < tempND) {
+//                return hit(tempPD, tempP, (tempP - origin) / (tempP - origin).length(), color, matKey);
+//            }
+//            return hit(tempND, tempN, (tempN - origin) / (tempN - origin).length(), color, matKey);
+//        }
+//        return hit(-1, vec3(-1, -1, -1), vec3(-1, -1, -1), color, matKey);
+//    }
 };
 
 //class triangle : public shape {
@@ -222,6 +247,34 @@ public:
 //        else return hit(-1, vec3(-1, -1, -1), vec3(-1, -1, -1), color, matKey);
 //    }
 
+///original
+//    hit getHit(vec3 rayStart, vec3 rayEnd) override {
+//        vec3 edge0 = t1-t0;
+//        vec3 edge1 = t2-t1;
+//        vec3 edge2 = t0-t2;
+//        vec3 normal = edge0.cross((t2-t0));
+//        normal = normal / normal.length();
+//        vec3 dir = rayEnd-rayStart;
+//
+//        if (normal.dot(dir) == 0) return hit(-1, vec3(-1, -1, -1), vec3(-1, -1, -1), color, matKey);
+//
+//        double dis = normal.dot(t0);
+//        double t = ((normal.dot(rayStart) + dis)/ normal.dot(dir));
+//        if (t < 0) return hit(-1, vec3(-1, -1, -1), vec3(-1, -1, -1), color, matKey);
+//        vec3 p = rayStart + t * dir;
+//        vec3 c0 = p - t0;
+//        vec3 c1 = p - t1;
+//        vec3 c2 = p - t2;
+//
+//        double distance = sqrt(pow(p.x()-rayStart.x(), 2) + pow(p.y()-rayStart.y(), 2) + pow(p.z()-rayStart.z(), 2));
+//
+//        if (normal.dot(edge0.cross(c0)) >= 0 && normal.dot(edge1.cross(c1)) >= 0 && normal.dot(edge2.cross(c2)) >= 0) {
+//            return hit(distance, p, normal, color, matKey);
+//        }
+//        else return hit(-1, vec3(-1, -1, -1), vec3(-1, -1, -1), color, matKey);
+//    }
+
+
     hit getHit(vec3 rayStart, vec3 rayEnd) override {
         vec3 edge0 = t1-t0;
         vec3 edge1 = t2-t1;
@@ -229,11 +282,13 @@ public:
         vec3 normal = edge0.cross((t2-t0));
         normal = normal / normal.length();
         vec3 dir = rayEnd-rayStart;
+        dir = dir / dir.length();
 
-        if (normal.dot(dir) == 0) return hit(-1, vec3(-1, -1, -1), vec3(-1, -1, -1), color, matKey);
+        double denom = normal.dot(dir);
+        if (abs(denom) < 0.000001) return hit(-1, vec3(-1, -1, -1), vec3(-1, -1, -1), color, matKey);
 
-        double dis = normal.dot(t0);
-        double t = ((normal.dot(rayStart) + dis)/ normal.dot(dir));
+
+        double t = ((normal.dot((t0 - rayStart))) / denom);
         if (t < 0) return hit(-1, vec3(-1, -1, -1), vec3(-1, -1, -1), color, matKey);
         vec3 p = rayStart + t * dir;
         vec3 c0 = p - t0;
@@ -243,12 +298,12 @@ public:
         double distance = sqrt(pow(p.x()-rayStart.x(), 2) + pow(p.y()-rayStart.y(), 2) + pow(p.z()-rayStart.z(), 2));
 
         if (normal.dot(edge0.cross(c0)) >= 0 && normal.dot(edge1.cross(c1)) >= 0 && normal.dot(edge2.cross(c2)) >= 0) {
-            return hit(distance, p, normal, color, matKey);
+            return hit(t, p, normal, color, matKey);
         }
         else return hit(-1, vec3(-1, -1, -1), vec3(-1, -1, -1), color, matKey);
     }
 };
-hit Raycast(vec3 rayStart, vec3 rayEnd, list<shape*> shapeList);
+//hit Raycast(vec3 rayStart, vec3 rayEnd, list<shape*> shapeList);
 
 hit Raycast(vec3 rayStart, vec3 rayEnd, list<shape*> shapeList){
 
@@ -284,11 +339,11 @@ hit Raycast(vec3 rayStart, vec3 rayEnd, list<shape*> shapeList){
     return h;
 }
 
-vec3 get_color(vec3 p, vec3 dir, int depth, list<shape*> shapeList) {
+vec3 get_color(vec3 p, vec3 nxt, int depth, list<shape*> shapeList) {
     double f = 0.5;
 //    vec3 color = vec3(1, 1, 1);
     if (depth <= 0) return vec3(0, 0, 0);
-    hit next = Raycast(p, dir, shapeList);
+    hit next = Raycast(p, nxt, shapeList);
     if (next.dist > 0) {
         if (next.color.r() == 0 && next.color.g() == 0 && next.color.b() == 0) return next.color;
         vec3 ref;
@@ -299,7 +354,8 @@ vec3 get_color(vec3 p, vec3 dir, int depth, list<shape*> shapeList) {
             printf("");
         }
         else if (key == 2.0) {
-            ref = (dir - p) - 2 * dir.dot(next.norm) * next.norm;
+            ref = next.loc - 2 * next.norm * next.loc.dot(next.norm);
+//            ref = ((nxt - next.loc) - 2 * nxt.dot(next.norm) * next.norm) + next.loc;
         }
 //        vec3 ref = next.mptr->reflection(next.loc, next.norm);
         return next.color * get_color(next.loc, ref, depth - 1, shapeList);
@@ -329,7 +385,8 @@ int main(int argc, char *agrv[]) {
 
     shape* s1 = new sphere(vec3(0.25, 1, 2), 0.5, vec3(0., 0., 1), 1);
     shape* s2 = new sphere(vec3(1.75, 1, 2), 0.5, vec3(1, 0., 0.), 1);
-    shape* s3 = new sphere(vec3(1, 0.5, 4), 1, vec3(0.5, 0.5, 0.5), 2);
+    shape* s3 = new sphere(vec3(1, 0.5, 4), 1, vec3(01, 01, 01), 2);
+    shape* s4 = new sphere(vec3(1, 1001.5, 3), 1000, vec3(0.5, 0.5, 0.5), 1);
     shape* t1 = new triangle(vec3(1, 1.5, 0), vec3(11, 1.5, 10), vec3(-9, 1.5, 10), vec3(0.5, 0.5, 0.5), 1);
 
 //    s1;
@@ -338,6 +395,7 @@ int main(int argc, char *agrv[]) {
     shapeList.push_front(s1);
     shapeList.push_front(s2);
     shapeList.push_front(s3);
+//    shapeList.push_front(s4);
     shapeList.push_front(t1);
 
     int x, y, s;
