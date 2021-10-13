@@ -50,17 +50,23 @@ vec3 rand_vec3() {
 }
 
 vec3 rand_vec3(double min, double max) {
-    return (min + (max - min)) * rand_vec3();
+    double x = rand() / (RAND_MAX + 1.0);
+    double y = rand() / (RAND_MAX + 1.0);
+    double z = rand() / (RAND_MAX + 1.0);
+    x = min + x * (max - min);
+    y = min + y * (max - min);
+    z = min + z * (max - min);
+
+    return vec3(x, y, z);
 }
 
 vec3 rand_unit_vec3() {
-    vec3* rvec; // random vector
+    vec3 rvec;
     while (1) {
-        vec3 t = rand_vec3(-1, 1);
-        rvec = &t;
-        if (rvec->length() <= 1) break;
+        rvec = rand_vec3(-1, 1);
+        if (rvec.length() <= 1) break;
     }
-    return *rvec / rvec->length(); //random unit vector
+    return rvec / rvec.length(); //random unit vector
 }
 
 class shape {
@@ -164,7 +170,7 @@ hit Raycast(vec3 rayStart, vec3 rayEnd, list<shape*> shapeList){
         hit tempH = s->getHit(rayStart, rayEnd);
         double d = tempH.dist;
 
-        if (d == -1 || d == 0) {
+        if (d <= 0.0000001) {
 
         }
         else if ((rayStart.x() - rayEnd.x() >= 0 && rayStart.x() - tempH.loc.x() < 0) ||
@@ -185,7 +191,6 @@ hit Raycast(vec3 rayStart, vec3 rayEnd, list<shape*> shapeList){
 
 vec3 get_color(vec3 p, vec3 nxt, int depth, list<shape*> shapeList) {
     double f = 0.5;
-//    vec3 color = vec3(1, 1, 1);
     if (depth <= 0) return vec3(0, 0, 0);
     hit next = Raycast(p, nxt, shapeList);
     if (next.dist > 0) {
@@ -195,7 +200,6 @@ vec3 get_color(vec3 p, vec3 nxt, int depth, list<shape*> shapeList) {
         if (key == 1.0) { //lambertian
             vec3 r = rand_unit_vec3();
             ref = next.norm + r + next.loc;
-            printf("");
         }
         else if (key == 2.0) { //specular
             ref = next.loc - 2 * next.norm * next.loc.dot(next.norm);
@@ -207,23 +211,24 @@ vec3 get_color(vec3 p, vec3 nxt, int depth, list<shape*> shapeList) {
 
 int main(int argc, char *agrv[]) {
 
-    const int xBound = 1600;
-    const int yBound = 900;
-    int samples = 1024;
-    int depth = 128;
+    const int xBound = 512;
+    const int yBound = 384;
+    int samples = 16;
+    int depth = 16;
 
-    vec3 eye = vec3(1, 0.75, 0);
+    vec3 eye = vec3(0, 0, 0);
     vec3 imagePlane = vec3(2, 1.5, 1);
+    vec3 topleft = vec3(-1, -0.75, 1);
 
 
     uint8_t raster[yBound][xBound][3];
 
     list <shape*> shapeList;
 
-    shape* s1 = new sphere(vec3(0.25, 1, 2), 0.5, vec3(0., 0., 1), 1);
-    shape* s2 = new sphere(vec3(1.75, 1, 2), 0.5, vec3(1, 0., 0.), 1);
-    shape* s3 = new sphere(vec3(1, 0.5, 4), 1, vec3(01, 01, 01), 2);
-    shape* t1 = new triangle(vec3(1, 1.5, 0), vec3(11, 1.5, 10), vec3(-9, 1.5, 10), vec3(0.5, 0.5, 0.5), 1);
+    shape* s1 = new sphere(vec3(-0.75, 0.25, 2), 0.5, vec3(0., 0., 1), 1);
+    shape* s2 = new sphere(vec3(0.75, 0.25, 2), 0.5, vec3(1, 0., 0.), 1);
+    shape* s3 = new sphere(vec3(0, -0.25, 4), 1, vec3(01, 01, 01), 2);
+    shape* t1 = new triangle(vec3(0, 0.75, 0), vec3(10, 0.75, 10), vec3(-10, 0.75, 10), vec3(0.5, 0.5, 0.5), 1);
 
     shapeList.push_front(s1);
     shapeList.push_front(s2);
@@ -243,7 +248,7 @@ int main(int argc, char *agrv[]) {
             for (s = 0; s < samples; s++) {
                 double randX = rand() / (RAND_MAX + 1.0);
                 double randY = rand() / (RAND_MAX + 1.0);
-                vec3 tempdir = vec3((imagePlane.x() / xBound) * ((double) x + randX), (imagePlane.y() / yBound) * ((double) y + randY), imagePlane.z());
+                vec3 tempdir = vec3((imagePlane.x() / xBound) * ((double) x + randX) + topleft.x(), (imagePlane.y() / yBound) * ((double) y + randY) + topleft.y(), imagePlane.z());
                 vec3 tempcolor = get_color(eye, tempdir, depth, shapeList) * 255;
                 color += tempcolor;
             }
