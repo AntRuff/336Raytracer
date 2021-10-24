@@ -25,23 +25,31 @@ private:
     double viewHeight;
     double viewDist;
     vec3 topleft;
+    vec3 hor;
+    vec3 vert;
 public:
-    camera (double fov, double ar) { //horizontal fov and aspect ratio
-        double rfov = fov * (PI / 180);
+    camera (vec3 eye, vec3 target, double fov, double aspectRatio, vec3 vup) { //horizontal fov and aspect ratio
+        this->eye = eye;
+        double rfov = fov * (PI / 180); //radian fov
         double h = tan(rfov / 2);
 
-        printf("PI = %f, rfov = %f, h = %f\n", PI, rfov, h);
-
         viewWidth = h * 2;
-        viewHeight = viewWidth / ar;
-        viewDist = 1;
-        eye = vec3(0, 0, 0);
+        viewHeight = viewWidth / aspectRatio;
 
-        topleft = vec3(eye.x() - viewWidth/2, eye.y() - viewHeight/2, eye.z() + viewDist);
+        vec3 cz = (target - eye);
+        if (cz.length() != 0) cz = cz / cz.length();
+        vec3 cx = vup.cross(cz);
+        if (cx.length() != 0) cx = cx / cx.length();
+        vec3 cy = cy = cz.cross(cx);
+        if (cy.length() != 0) cy = cy / cy.length();
+        hor = cx * viewWidth;
+        vert = cy * viewHeight;
+
+        topleft = eye - hor/2 - vert/2 + cz;
     }
 
     vec3 get_dir(double x, double y) {
-        return topleft + vec3(x * viewWidth, y * viewHeight, 0);
+        return topleft + x * hor + y * vert /*- eye*/;
     }
 };
 
@@ -218,7 +226,6 @@ hit Raycast(vec3 rayStart, vec3 rayEnd, list<shape*> shapeList){
 }
 
 vec3 get_color(vec3 p, vec3 nxt, int depth, list<shape*> shapeList) {
-    double f = 0.5;
     if (depth <= 0) return vec3(0, 0, 0);
     hit next = Raycast(p, nxt, shapeList);
     if (next.dist > 0) {
@@ -241,7 +248,6 @@ int main(int argc, char *agrv[]) {
 
     const int width = 512;
     const double aspectRatio = 2 / 1.5;
-    camera cam = camera(90, aspectRatio);
 
     int samples = 16;
     int depth = 16;
@@ -250,9 +256,10 @@ int main(int argc, char *agrv[]) {
     const int yBound = width / aspectRatio;
 
     vec3 eye = vec3(0, 0, 0);
-    vec3 imagePlane = vec3(2, 1.5, 1);
-    vec3 topleft = vec3(-1, -0.75, 1);
+    vec3 target = vec3(0, 0, 1);
+    vec3 vup = vec3(0, 1, 0);
 
+    camera cam = camera(eye, target, 90, aspectRatio, vup);
 
     uint8_t raster[yBound][xBound][3];
 
@@ -275,9 +282,6 @@ int main(int argc, char *agrv[]) {
     for (y = 0; y < yBound; y++){
         for (x = 0; x < xBound; x++){
             vec3 color = vec3(0, 0, 0);
-            if (x == 150 && y == 280) {
-                printf("");
-            }
             for (s = 0; s < samples; s++) {
                 double randX = (x + rand() / (RAND_MAX + 1.0)) / xBound;
                 double randY = (y + rand() / (RAND_MAX + 1.0)) / yBound;
