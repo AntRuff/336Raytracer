@@ -14,8 +14,44 @@ using namespace std;
 #define R 0
 #define G 1
 #define B 2
+#define PI 2*acos(0.)
 class shape;
 class material;
+
+class camera {
+private:
+    vec3 eye;
+    double viewWidth;
+    double viewHeight;
+    double viewDist;
+    vec3 topleft;
+    vec3 hor;
+    vec3 vert;
+public:
+    camera (vec3 eye, vec3 target, double fov, double aspectRatio, vec3 vup) { //horizontal fov and aspect ratio
+        this->eye = eye;
+        double rfov = fov * (PI / 180); //radian fov
+        double h = tan(rfov / 2);
+
+        viewWidth = h * 2;
+        viewHeight = viewWidth / aspectRatio;
+
+        vec3 cz = (target - eye);
+        if (cz.length() != 0) cz = cz / cz.length();
+        vec3 cx = vup.cross(cz);
+        if (cx.length() != 0) cx = cx / cx.length();
+        vec3 cy = cy = cz.cross(cx);
+        if (cy.length() != 0) cy = cy / cy.length();
+        hor = cx * viewWidth;
+        vert = cy * viewHeight;
+
+        topleft = eye - hor/2 - vert/2 + cz;
+    }
+
+    vec3 get_dir(double x, double y) {
+        return topleft + x * hor + y * vert /*- eye*/;
+    }
+};
 
 class hit {
 public:
@@ -190,7 +226,6 @@ hit Raycast(vec3 rayStart, vec3 rayEnd, list<shape*> shapeList){
 }
 
 vec3 get_color(vec3 p, vec3 nxt, int depth, list<shape*> shapeList) {
-    double f = 0.5;
     if (depth <= 0) return vec3(0, 0, 0);
     hit next = Raycast(p, nxt, shapeList);
     if (next.dist > 0) {
@@ -211,15 +246,20 @@ vec3 get_color(vec3 p, vec3 nxt, int depth, list<shape*> shapeList) {
 
 int main(int argc, char *agrv[]) {
 
-    const int xBound = 512;
-    const int yBound = 384;
+    const int width = 512;
+    const double aspectRatio = 2 / 1.5;
+
     int samples = 16;
     int depth = 16;
 
-    vec3 eye = vec3(0, 0, 0);
-    vec3 imagePlane = vec3(2, 1.5, 1);
-    vec3 topleft = vec3(-1, -0.75, 1);
+    const int xBound = width;
+    const int yBound = width / aspectRatio;
 
+    vec3 eye = vec3(0, 0, 0);
+    vec3 target = vec3(0, 0, 1);
+    vec3 vup = vec3(0, 1, 0);
+
+    camera cam = camera(eye, target, 90, aspectRatio, vup);
 
     uint8_t raster[yBound][xBound][3];
 
@@ -242,13 +282,10 @@ int main(int argc, char *agrv[]) {
     for (y = 0; y < yBound; y++){
         for (x = 0; x < xBound; x++){
             vec3 color = vec3(0, 0, 0);
-            if (x == 150 && y == 280) {
-                printf("");
-            }
             for (s = 0; s < samples; s++) {
-                double randX = rand() / (RAND_MAX + 1.0);
-                double randY = rand() / (RAND_MAX + 1.0);
-                vec3 tempdir = vec3((imagePlane.x() / xBound) * ((double) x + randX) + topleft.x(), (imagePlane.y() / yBound) * ((double) y + randY) + topleft.y(), imagePlane.z());
+                double randX = (x + rand() / (RAND_MAX + 1.0)) / xBound;
+                double randY = (y + rand() / (RAND_MAX + 1.0)) / yBound;
+                vec3 tempdir = cam.get_dir(randX, randY);
                 vec3 tempcolor = get_color(eye, tempdir, depth, shapeList) * 255;
                 color += tempcolor;
             }
