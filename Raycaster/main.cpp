@@ -14,8 +14,36 @@ using namespace std;
 #define R 0
 #define G 1
 #define B 2
+#define PI 2*acos(0.)
 class shape;
 class material;
+
+class camera {
+private:
+    vec3 eye;
+    double viewWidth;
+    double viewHeight;
+    double viewDist;
+    vec3 topleft;
+public:
+    camera (double fov, double ar) { //horizontal fov and aspect ratio
+        double rfov = fov * (PI / 180);
+        double h = tan(rfov / 2);
+
+        printf("PI = %f, rfov = %f, h = %f\n", PI, rfov, h);
+
+        viewWidth = h * 2;
+        viewHeight = viewWidth / ar;
+        viewDist = 1;
+        eye = vec3(0, 0, 0);
+
+        topleft = vec3(eye.x() - viewWidth/2, eye.y() - viewHeight/2, eye.z() + viewDist);
+    }
+
+    vec3 get_dir(double x, double y) {
+        return topleft + vec3(x * viewWidth, y * viewHeight, 0);
+    }
+};
 
 class hit {
 public:
@@ -211,10 +239,15 @@ vec3 get_color(vec3 p, vec3 nxt, int depth, list<shape*> shapeList) {
 
 int main(int argc, char *agrv[]) {
 
-    const int xBound = 512;
-    const int yBound = 384;
+    const int width = 512;
+    const double aspectRatio = 2 / 1.5;
+    camera cam = camera(90, aspectRatio);
+
     int samples = 16;
     int depth = 16;
+
+    const int xBound = width;
+    const int yBound = width / aspectRatio;
 
     vec3 eye = vec3(0, 0, 0);
     vec3 imagePlane = vec3(2, 1.5, 1);
@@ -246,9 +279,9 @@ int main(int argc, char *agrv[]) {
                 printf("");
             }
             for (s = 0; s < samples; s++) {
-                double randX = rand() / (RAND_MAX + 1.0);
-                double randY = rand() / (RAND_MAX + 1.0);
-                vec3 tempdir = vec3((imagePlane.x() / xBound) * ((double) x + randX) + topleft.x(), (imagePlane.y() / yBound) * ((double) y + randY) + topleft.y(), imagePlane.z());
+                double randX = (x + rand() / (RAND_MAX + 1.0)) / xBound;
+                double randY = (y + rand() / (RAND_MAX + 1.0)) / yBound;
+                vec3 tempdir = cam.get_dir(randX, randY);
                 vec3 tempcolor = get_color(eye, tempdir, depth, shapeList) * 255;
                 color += tempcolor;
             }
