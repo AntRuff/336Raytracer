@@ -24,15 +24,17 @@ public:
     vec3 norm;
     vec3 color;
     double matKey;
+    double refractIndex;
     hit() {
 
     }
-    hit(double dist,  vec3 loc, vec3 norm, vec3 color, double matKey) {
+    hit(double dist,  vec3 loc, vec3 norm, vec3 color, double matKey, double refractIndex) {
         this->dist = dist;
         this->loc = loc;
         this->norm = norm;
         this->color = color;
         this->matKey = matKey;
+        this->refractIndex = refractIndex;
     }
 };
 
@@ -74,6 +76,7 @@ class shape {
 public:
     vec3 color;
     double matKey;
+    double refractIndex;
 
     virtual hit getHit(vec3 rayStart, vec3 rayEnd) = 0;
 };
@@ -86,11 +89,12 @@ public:
     double radius;
 
 
-    sphere(vec3 o, double r, vec3 c, double mk){
+    sphere(vec3 o, double r, vec3 c, double mk, double rI){
         origin = o;
         radius = r;
         color = c;
         matKey = mk;
+        refractIndex = rI;
     }
 
     hit getHit(vec3 rayStart, vec3 rayEnd) override {
@@ -110,9 +114,9 @@ public:
             vec3 n = r - origin;
             n = n / n.length();
 
-            return hit(t, r, n, color, matKey);
+            return hit(t, r, n, color, matKey, refractIndex);
         }
-        return hit(-1, vec3(-1, -1, -1), vec3(-1, -1, -1), color, matKey);
+        return hit(-1, vec3(-1, -1, -1), vec3(-1, -1, -1), color, matKey, refractIndex);
     }
 };
 
@@ -122,12 +126,13 @@ public:
     vec3 t1;
     vec3 t2;
 
-    triangle (vec3 a, vec3 b, vec3 c, vec3 color, double mk){
+    triangle (vec3 a, vec3 b, vec3 c, vec3 color, double mk, double rI){
         t0 = a;
         t1 = b;
         t2 = c;
         this->color = color;
         matKey = mk;
+        refractIndex = rI;
     }
 
     hit getHit(vec3 rayStart, vec3 rayEnd) override {
@@ -140,20 +145,20 @@ public:
         dir = dir / dir.length();
 
         double denom = normal.dot(dir);
-        if (abs(denom) < 0.000001) return hit(-1, vec3(-1, -1, -1), vec3(-1, -1, -1), color, matKey);
+        if (abs(denom) < 0.000001) return hit(-1, vec3(-1, -1, -1), vec3(-1, -1, -1), color, matKey, 0);
 
 
         double t = ((normal.dot((t0 - rayStart))) / denom);
-        if (t < 0) return hit(-1, vec3(-1, -1, -1), vec3(-1, -1, -1), color, matKey);
+        if (t < 0) return hit(-1, vec3(-1, -1, -1), vec3(-1, -1, -1), color, matKey, 0);
         vec3 p = rayStart + t * dir;
         vec3 c0 = p - t0;
         vec3 c1 = p - t1;
         vec3 c2 = p - t2;
 
         if (normal.dot(edge0.cross(c0)) >= 0 && normal.dot(edge1.cross(c1)) >= 0 && normal.dot(edge2.cross(c2)) >= 0) {
-            return hit(t, p, normal, color, matKey);
+            return hit(t, p, normal, color, matKey, refractIndex);
         }
-        else return hit(-1, vec3(-1, -1, -1), vec3(-1, -1, -1), color, matKey);
+        else return hit(-1, vec3(-1, -1, -1), vec3(-1, -1, -1), color, matKey, refractIndex);
     }
 };
 
@@ -164,7 +169,7 @@ hit Raycast(vec3 rayStart, vec3 rayEnd, list<shape*> shapeList){
                            pow(closestPoint.y() - rayStart.y(), 2) +
                            pow(closestPoint.z() - rayStart.z(), 2));
 
-    hit h = hit(-1, vec3(-1, -1, -1), vec3(-1, -1, -1), vec3(-1, -1, -1), -1);
+    hit h = hit(-1, vec3(-1, -1, -1), vec3(-1, -1, -1), vec3(-1, -1, -1), -1, 0);
 
     for(shape* s : shapeList){
         hit tempH = s->getHit(rayStart, rayEnd);
@@ -189,6 +194,14 @@ hit Raycast(vec3 rayStart, vec3 rayEnd, list<shape*> shapeList){
     return h;
 }
 
+vec3 refract(vec3 ray, vec3 norm, double rI){
+    double a = fmin((-ray).dot(norm), 1.0);
+    vec3 perpendicular = rI * (ray + a*norm);
+    vec3 parallel = -sqrt(fabs(1.0 - perpendicular.dot(perpendicular)))*norm;
+    return perpendicular + parallel;
+}
+
+
 vec3 get_color(vec3 p, vec3 nxt, int depth, list<shape*> shapeList) {
     double f = 0.5;
     if (depth <= 0) return vec3(0, 0, 0);
@@ -199,10 +212,35 @@ vec3 get_color(vec3 p, vec3 nxt, int depth, list<shape*> shapeList) {
         double key = next.matKey;
         if (key == 1.0) { //lambertian
             vec3 r = rand_unit_vec3();
-            ref = next.norm + r + next.loc;
+            //ref = next.norm + r + next.loc;
+            ref = next.norm + r;
         }
         else if (key == 2.0) { //specular
             ref = next.loc - 2 * next.norm * next.loc.dot(next.norm);
+        }
+        else if (key == 3.0) { //Dialectrics
+            double refractRatio;
+            if (nxt.dot(next.norm) > 0.0) {
+                refractRatio = next.refractIndex;
+                next.norm = -next.norm;
+            }
+            else {
+                refractRatio = 1.0/next.refractIndex;
+            }
+
+            vec3 unit = nxt/nxt.length();
+
+            double cos = fmin((-unit).dot(next.norm), 1.0);
+            double sin = sqrt(1.0 - cos*cos);
+            double r0 = pow((1-refractRatio)/(1+refractRatio), 2);
+
+            double reflectance = r0 + (1-r0)*pow((1-cos), 5); 
+
+            if ((refractRatio * sin > 1.0) || reflectance > rand_double()){
+                ref = next.loc - 2 * next.norm * next.loc.dot(next.norm);
+            } else {
+                ref = refract(unit, next.norm, refractRatio);
+            }
         }
         return next.color * get_color(next.loc, ref, depth - 1, shapeList);
     }
@@ -211,8 +249,8 @@ vec3 get_color(vec3 p, vec3 nxt, int depth, list<shape*> shapeList) {
 
 int main(int argc, char *agrv[]) {
 
-    const int xBound = 512;
-    const int yBound = 384;
+    const int xBound = 1600;
+    const int yBound = 1200;
     int samples = 16;
     int depth = 16;
 
@@ -225,14 +263,18 @@ int main(int argc, char *agrv[]) {
 
     list <shape*> shapeList;
 
-    shape* s1 = new sphere(vec3(-0.75, 0.25, 2), 0.5, vec3(0., 0., 1), 1);
-    shape* s2 = new sphere(vec3(0.75, 0.25, 2), 0.5, vec3(1, 0., 0.), 1);
-    shape* s3 = new sphere(vec3(0, -0.25, 4), 1, vec3(01, 01, 01), 2);
-    shape* t1 = new triangle(vec3(0, 0.75, 0), vec3(10, 0.75, 10), vec3(-10, 0.75, 10), vec3(0.5, 0.5, 0.5), 1);
+    shape* s1 = new sphere(vec3(-0.75, 0.25, 2), 0.5, vec3(0., 0., 1), 1, 1);
+    shape* s2 = new sphere(vec3(0.75, 0.25, 2), 0.5, vec3(1, 0., 0.), 1, 1);
+    shape* s3 = new sphere(vec3(0, -1, 2), 0.5, vec3(0, 1 , 0), 1, 1);
+    shape* s4 = new sphere(vec3(1.5, -0.5, 4), 1, vec3(.75, .75, .75), 2, 1);
+    shape* s5 = new sphere(vec3(0, -0.25, 1.5), .5, vec3(1, 1, 1), 3, 1.5);
+    shape* t1 = new triangle(vec3(0, 0.75, 0), vec3(10, 0.75, 10), vec3(-10, 0.75, 10), vec3(0.5, 0.5, 0.5), 1, 1);
 
     shapeList.push_front(s1);
     shapeList.push_front(s2);
     shapeList.push_front(s3);
+    shapeList.push_front(s4);
+    shapeList.push_front(s5);
     shapeList.push_front(t1);
 
     int x, y, s;
