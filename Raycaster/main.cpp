@@ -267,7 +267,7 @@ int main(int argc, char *agrv[]) {
     shape* s2 = new sphere(vec3(0.75, 0.25, 2), 0.5, vec3(1, 0., 0.), 1, 1);
     shape* s3 = new sphere(vec3(0, -1, 2), 0.5, vec3(0, 1 , 0), 1, 1);
     shape* s4 = new sphere(vec3(1.5, -0.5, 4), 1, vec3(.75, .75, .75), 2, 1);
-    shape* s5 = new sphere(vec3(0, -0.25, 1.5), .5, vec3(1, 1, 1), 3, 1.5);
+    shape* s5 = new sphere(vec3(0, -0.25, 2.5), .5, vec3(1, 1, 1), 3, 4);
     shape* t1 = new triangle(vec3(0, 0.75, 0), vec3(10, 0.75, 10), vec3(-10, 0.75, 10), vec3(0.5, 0.5, 0.5), 1, 1);
 
     shapeList.push_front(s1);
