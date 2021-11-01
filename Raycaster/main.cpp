@@ -231,9 +231,9 @@ hit Raycast(vec3 rayStart, vec3 rayEnd, list<shape*> shapeList){
 }
 
 vec3 refract(vec3 ray, vec3 norm, double rI){
-    double a = fmin((-ray).dot(norm), 1.0);
+    double a = fmin((ray).dot(norm), 1.0);
     vec3 perpendicular = rI * (ray + a*norm);
-    vec3 parallel = -sqrt(fabs(1.0 - perpendicular.dot(perpendicular)))*norm;
+    vec3 parallel = -sqrt(fabs(1.0 - perpendicular.squared_length()))*norm;
     return perpendicular + parallel;
 }
 
@@ -284,7 +284,7 @@ vec3 get_color(vec3 p, vec3 nxt, int depth, list<shape*> shapeList) {
 
 int main(int argc, char *agrv[]) {
 
-    const int width = 512;
+    const int width = 1600;
     const double aspectRatio = 2 / 1.5;
 
     int samples = 16;
@@ -307,7 +307,7 @@ int main(int argc, char *agrv[]) {
     shape* s2 = new sphere(vec3(0.75, 0.25, 2), 0.5, vec3(1, 0., 0.), 1, 1);
     shape* s3 = new sphere(vec3(0, -1, 2), 0.5, vec3(0, 1 , 0), 1, 1);
     shape* s4 = new sphere(vec3(1.5, -0.5, 4), 1, vec3(.75, .75, .75), 2, 1);
-    shape* s5 = new sphere(vec3(0, -0.25, 2.5), .5, vec3(1, 1, 1), 3, 4);
+    shape* s5 = new sphere(vec3(0, -0.25, 2.5), .5, vec3(1, 1, 1), 3, 1.5);
     shape* t1 = new triangle(vec3(0, 0.75, 0), vec3(10, 0.75, 10), vec3(-10, 0.75, 10), vec3(0.5, 0.5, 0.5), 1, 1);
 
     shapeList.push_front(s1);
